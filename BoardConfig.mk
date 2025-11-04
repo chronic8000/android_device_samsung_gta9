@@ -1,0 +1,250 @@
+#
+# Copyright (C) 2025 The LineageOS Project
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# Path
+DEVICE_PATH := device/samsung/gta9
+CONFIGS_PATH := $(DEVICE_PATH)/configs
+KERNEL_PATH := device/samsung/gta9-kernel
+VENDOR_PATH := vendor/samsung/gta9
+
+# Architecture
+TARGET_ARCH := arm64
+TARGET_ARCH_VARIANT := armv8-2a-dotprod
+TARGET_CPU_ABI := arm64-v8a
+TARGET_CPU_ABI2 :=
+TARGET_CPU_VARIANT := cortex-a76
+TARGET_CPU_VARIANT_RUNTIME := cortex-a76
+
+TARGET_2ND_ARCH := arm
+TARGET_2ND_ARCH_VARIANT := armv8-2a
+TARGET_2ND_CPU_ABI := armeabi-v7a
+TARGET_2ND_CPU_ABI2 := armeabi
+TARGET_2ND_CPU_VARIANT := cortex-a55
+TARGET_2ND_CPU_VARIANT_RUNTIME := cortex-a55
+
+# Enable 64-bit for non-zygote.
+ZYGOTE_FORCE_64 := true
+
+# Force any prefer32 targets to be compiled as 64 bit.
+IGNORE_PREFER32_ON_DEVICE := true
+
+# Bootloader
+TARGET_BOOTLOADER_BOARD_NAME := gta9
+TARGET_NO_BOOTLOADER := true
+
+# Boot Image
+BOARD_BOOT_HEADER_VERSION := 4
+BOARD_USES_GENERIC_KERNEL_IMAGE := true
+BOARD_RAMDISK_USE_LZ4 := true
+BOARD_INCLUDE_DTB_IN_BOOTIMG := true
+
+BOARD_KERNEL_CMDLINE += bootopt=64S3,32N2,64N2
+
+BOARD_KERNEL_PAGESIZE := 4096
+BOARD_KERNEL_BASE := 0x3fff8000
+BOARD_KERNEL_OFFSET := 0x00008000
+BOARD_RAMDISK_OFFSET := 0x26f08000
+BOARD_KERNEL_TAGS_OFFSET := 0x07c88000
+BOARD_DTB_OFFSET := 0x07c88000
+
+#BOARD_RECOVERY_DTB_OFFSET := 0x00000000
+#BOARD_RECOVERY_HEADER_VERSION := 2
+
+# base and pagesize are usually ignored when BOARD_USES_GENERIC_KERNEL_IMAGE is true,
+# but our bootloader is fussy and cares about these offsets being set correctly.
+BOARD_MKBOOTIMG_ARGS := --base $(BOARD_KERNEL_BASE)
+BOARD_MKBOOTIMG_ARGS += --kernel_offset $(BOARD_KERNEL_OFFSET)
+BOARD_MKBOOTIMG_ARGS += --pagesize $(BOARD_KERNEL_PAGESIZE)
+BOARD_MKBOOTIMG_ARGS += --ramdisk_offset $(BOARD_RAMDISK_OFFSET)
+BOARD_MKBOOTIMG_ARGS += --tags_offset $(BOARD_KERNEL_TAGS_OFFSET)
+BOARD_MKBOOTIMG_ARGS += --dtb_offset $(BOARD_DTB_OFFSET)
+BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOT_HEADER_VERSION)
+#BOARD_RECOVERY_MKBOOTIMG_ARGS += --header_version $(BOARD_RECOVERY_HEADER_VERSION)
+#BOARD_RECOVERY_MKBOOTIMG_ARGS += --recovery_dtbo $(BOARD_PREBUILT_RECOVERY_DTBOIMAGE)
+
+# Boot image config order sourced from this commit:
+# https://github.com/xiaomi-mediatek-devs/android_device_xiaomi_mt6895-common/commit/04f779d187e608f9223e1442d4724d7eaaa4ad2a
+
+# Display
+TARGET_SCREEN_DENSITY := 213
+
+# Kernel
+# Kill lineage kernel build task while preserving kernel
+TARGET_NO_KERNEL_OVERRIDE := true
+
+# Workaround to make lineage's soong generator work
+TARGET_KERNEL_SOURCE := device/samsung/gta9-kernel/kernel-headers
+
+LOCAL_KERNEL := $(KERNEL_PATH)/Image.gz
+PRODUCT_COPY_FILES += \
+    $(LOCAL_KERNEL):kernel
+
+# DTB
+BOARD_PREBUILT_DTBIMAGE_DIR := $(KERNEL_PATH)/dtb
+
+# Kernel modules
+BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load.vendor_ramdisk))
+BOARD_VENDOR_RAMDISK_KERNEL_MODULES := $(addprefix $(KERNEL_PATH)/modules/, $(BOARD_VENDOR_RAMDISK_KERNEL_MODULES_LOAD))
+
+# Add recovery modules to vendor ramdisk
+BOARD_VENDOR_RAMDISK_RECOVERY_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load.recovery))
+RECOVERY_MODULES := $(addprefix $(KERNEL_PATH)/modules/, $(BOARD_VENDOR_RAMDISK_RECOVERY_KERNEL_MODULES_LOAD))
+
+# Prevent duplicated entries (to solve duplicated build rules problem)
+BOARD_VENDOR_RAMDISK_KERNEL_MODULES := $(sort $(BOARD_VENDOR_RAMDISK_KERNEL_MODULES) $(RECOVERY_MODULES))
+
+# Vendor modules (installed to vendor_dlkm)
+BOARD_VENDOR_KERNEL_MODULES_LOAD := $(strip $(shell cat $(KERNEL_PATH)/modules.load))
+BOARD_VENDOR_KERNEL_MODULES := $(wildcard $(KERNEL_PATH)/modules/*.ko)
+
+# recovery_dtbo
+#BOARD_PREBUILT_RECOVERY_DTBOIMAGE := $(DEVICE_PATH)/prebuilt/recovery_dtbo
+
+# Allow prebuilt ELF files (kernel modules) in vendor_dlkm
+BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES := true
+
+# List of kernel modules to be loaded from vendor_dlkm partition during second stage init
+BOARD_VENDOR_KERNEL_MODULES_LOAD := $(strip $(shell cat $(DEVICE_PATH)/modules.load.second_stage))
+
+# GSI
+BOARD_MOVE_GSI_AVB_KEYS_TO_VENDOR_BOOT := true
+
+# Filesystems
+TARGET_USERIMAGES_USE_EXT4 := true
+TARGET_USERIMAGES_USE_F2FS := true
+BOARD_HAS_LARGE_FILESYSTEM := true
+
+# Partition
+BOARD_FLASH_BLOCK_SIZE := 262144
+BOARD_BOOTIMAGE_PARTITION_SIZE := 67108864
+BOARD_CACHEIMAGE_PARTITION_SIZE := 314572800
+BOARD_DTBOIMG_PARTITION_SIZE := 8388608
+BOARD_METADATAIMAGE_PARTITION_SIZE := 33554432
+BOARD_RECOVERYIMAGE_PARTITION_SIZE := 83886080
+BOARD_USERDATAIMAGE_PARTITION_SIZE := 226492416
+BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE := 67108864
+
+# Partitions (Dynamic)
+BOARD_USES_VENDOR_BOOTIMAGE := true
+BOARD_USES_VENDOR_DLKM := true
+BOARD_USES_METADATA_PARTITION := true
+BOARD_SUPER_PARTITION_SIZE := 10328473600
+BOARD_SUPER_PARTITION_GROUPS := main
+BOARD_MAIN_SIZE := 10324279296
+
+# Partitions inside "main"
+BOARD_MAIN_PARTITION_LIST := system system_ext product vendor vendor_dlkm odm
+
+# Enable dynamic partitions
+BOARD_BUILD_SUPER_IMAGE_BY_DEFAULT := true
+BOARD_DYNAMIC_PARTITIONS_ENABLE := true
+
+# PARTITION_SIZE for each dynamic partition
+#BOARD_SYSTEMIMAGE_PARTITION_SIZE := 5368709120
+#BOARD_SYSTEM_EXTIMAGE_PARTITION_SIZE := 524288000
+#BOARD_PRODUCTIMAGE_PARTITION_SIZE := 2147483648
+#BOARD_VENDORIMAGE_PARTITION_SIZE := 1043677184
+#BOARD_ODMIMAGE_PARTITION_SIZE := 2097152
+#BOARD_VENDOR_DLKMIMAGE_PARTITION_SIZE := 41943040
+
+# File system types
+BOARD_ODMIMAGE_FILE_SYSTEM_TYPE := ext4
+BOARD_PRODUCTIMAGE_FILE_SYSTEM_TYPE := ext4
+BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE := ext4
+BOARD_SYSTEM_EXTIMAGE_FILE_SYSTEM_TYPE := ext4
+BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE := ext4
+BOARD_VENDOR_DLKMIMAGE_FILE_SYSTEM_TYPE := ext4
+
+TARGET_COPY_OUT_ODM := odm
+TARGET_COPY_OUT_PRODUCT := product
+TARGET_COPY_OUT_SYSTEM_EXT := system_ext
+TARGET_COPY_OUT_VENDOR := vendor
+TARGET_COPY_OUT_VENDOR_DLKM := vendor_dlkm
+
+# Platform
+BOARD_VENDOR := samsung
+BOARD_HAS_MTK_HARDWARE := true
+TARGET_BOARD_PLATFORM := mt6789
+
+# Properties
+TARGET_SYSTEM_PROP += $(DEVICE_PATH)/system.prop
+TARGET_PRODUCT_PROP += $(DEVICE_PATH)/product.prop
+TARGET_VENDOR_PROP += $(DEVICE_PATH)/vendor.prop
+
+# Recovery
+TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/rootdir/etc/fstab.mt6789
+TARGET_RECOVERY_PIXEL_FORMAT := BGRA_8888
+BOARD_HAS_NO_SELECT_BUTTON := true
+
+# Release tool
+TARGET_RELEASETOOLS_EXTENSIONS := $(DEVICE_PATH)/releasetools.py
+
+# RIL
+ENABLE_VENDOR_RIL_SERVICE := true
+
+# SEPolicy (Must align with API 35)
+BOARD_PLATFORM_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy/vendor
+BOARD_PLATFORM_SEPOLICY_VERSION := 35.0
+include device/mediatek/sepolicy_vndr/SEPolicy.mk
+
+# VINTF
+DEVICE_MANIFEST_FILE += $(CONFIGS_PATH)/vintf/manifest.xml
+DEVICE_FRAMEWORK_COMPATIBILITY_MATRIX_FILE := \
+    $(CONFIGS_PATH)/vintf/framework_compatibility_matrix.xml \
+    hardware/mediatek/vintf/mediatek_framework_compatibility_matrix.xml \
+    hardware/samsung/vintf/samsung_framework_compatibility_matrix.xml \
+    vendor/lineage/config/device_framework_matrix.xml
+
+# SPL
+# Update platform timestamp and AVB rollback index for Android 16/2026-01-01
+PLATFORM_SECURITY_PATCH_TIMESTAMP := 1672531200
+# Update to a recent/future patch level for Android 16
+BOOT_SECURITY_PATCH := 2026-01-01
+VENDOR_SECURITY_PATCH := $(BOOT_SECURITY_PATCH)
+
+# Verified Boot (AVB)
+BOARD_AVB_ENABLE := true
+BOARD_AVB_MAKE_VBMETA_IMAGE_ARGS += --flags 3
+# Update rollback index to match the new security date
+BOARD_AVB_ROLLBACK_INDEX := 20260101
+
+BOARD_AVB_RECOVERY_ALGORITHM := SHA256_RSA4096
+BOARD_AVB_RECOVERY_KEY_PATH := external/avb/test/data/testkey_rsa4096.pem
+BOARD_AVB_RECOVERY_ROLLBACK_INDEX := 1
+BOARD_AVB_RECOVERY_ROLLBACK_INDEX_LOCATION := 1
+
+BOARD_AVB_VBMETA_SYSTEM := product system_ext system
+BOARD_AVB_VBMETA_SYSTEM_KEY_PATH := external/avb/test/data/testkey_rsa2048.pem
+BOARD_AVB_VBMETA_SYSTEM_ALGORITHM := SHA256_RSA2048
+BOARD_AVB_VBMETA_SYSTEM_ROLLBACK_INDEX := 1
+BOARD_AVB_VBMETA_SYSTEM_ROLLBACK_INDEX_LOCATION := 2
+
+BOARD_AVB_VBMETA_VENDOR := vendor odm
+BOARD_AVB_VBMETA_VENDOR_KEY_PATH := external/avb/test/data/testkey_rsa2048.pem
+BOARD_AVB_VBMETA_VENDOR_ALGORITHM := SHA256_RSA2048
+BOARD_AVB_VBMETA_VENDOR_ROLLBACK_INDEX := 1
+BOARD_AVB_VBMETA_VENDOR_ROLLBACK_INDEX_LOCATION := 3
+
+# VNDK
+BOARD_VNDK_VERSION := current
+
+# Wi-Fi (Update version)
+WPA_SUPPLICANT_VERSION := VER_2_9
+BOARD_WPA_SUPPLICANT_DRIVER := NL80211
+BOARD_HOSTAPD_DRIVER := NL80211
+
+WIFI_DRIVER_FW_PATH_PARAM := "/dev/wmtWifi"
+WIFI_DRIVER_FW_PATH_STA := "STA"
+WIFI_DRIVER_FW_PATH_AP := "AP"
+WIFI_DRIVER_FW_PATH_P2P := "P2P"
+WIFI_DRIVER_STATE_CTRL_PARAM := "/dev/wmtWifi"
+WIFI_DRIVER_STATE_ON := "1"
+WIFI_DRIVER_STATE_OFF := "0"
+WIFI_HIDL_UNIFIED_SUPPLICANT_SERVICE_RC_ENTRY := true
+WIFI_HIDL_FEATURE_DUAL_INTERFACE := true
+
+# Inherit the proprietary files
+include vendor/samsung/gta9/BoardConfigVendor.mk
