@@ -22,7 +22,7 @@ This repository contains the device tree for building custom ROMs, such as Linea
 This repository includes:
 - **Device-specific configurations**: Required to build a custom ROM for the Samsung Galaxy Tab A9.
 - **Vendor blobs**: Proprietary files necessary for hardware functionality (if linked separately).
-- **Build scripts and configuration files**: For compiling the kernel and ROM.
+- **Build scripts and configuration files**: For compiling the kernel and ROM (Android 16).
 
 ## Kernel Information
 
